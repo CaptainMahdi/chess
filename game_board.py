@@ -1,13 +1,10 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 from dataclasses import dataclass, field, asdict
 import redis
 from redis.commands.json.path import Path
 import json
-import ipdb
 
-r = redis.Redis(host="ai.thewcl.com", port=6379, db=0, password="atmega328")
-REDIS_KEY = "tic_tac_toe:game_state"
+r = redis.Redis(host="ai.thewcl.com", port=6379, db=2, password="atmega328")
+REDIS_KEY = "chess:game_state"
 
 # ----------------------------
 # Data Model
@@ -16,10 +13,10 @@ REDIS_KEY = "tic_tac_toe:game_state"
 
 
 @dataclass
-class TicTacToeBoard:
+class ChessBoard:
     state: str = "is_playing"  # is_playing, has_winner, has_draw
-    player_turn: str = "x"
-    positions: list[str] = field(default_factory=lambda: [""] * 9)
+    player_turn: str = "white"
+    positions: list[str] = field(default_factory=lambda: [""] * 64)
 
     def is_my_turn(self, player: str) -> bool:
         return self.state == "is_playing" and player == self.player_turn
@@ -31,10 +28,10 @@ class TicTacToeBoard:
         if not self.is_my_turn(player):
             return {"success": False, "message": f"It is not {player}'s turn."}
 
-        if not 0 <= index < 9:
+        if not 0 <= index < 64:
             return {
                 "success": False,
-                "message": "Invalid index. Must be between 0 and 8.",
+                "message": "Invalid index. Must be between 0 and 63.",
             }
 
         if self.positions[index]:
@@ -77,12 +74,12 @@ class TicTacToeBoard:
         )
 
     def switch_turn(self):
-        self.player_turn = "o" if self.player_turn == "x" else "x"
+        self.player_turn = "white" if self.player_turn == "black" else "black"
 
     def reset(self):
         self.state = "is_playing"
-        self.player_turn = "x"
-        self.positions = [""] * 9
+        self.player_turn = "white"
+        self.positions = [""] * 64
         self.save_to_redis()
 
     def save_to_redis(self):
@@ -99,37 +96,3 @@ class TicTacToeBoard:
     def serialize(self):
         return json.dumps(self.to_dict())
 
-
-# ----------------------------
-# FastAPI App
-# ----------------------------
-
-app = FastAPI()
-
-
-class MoveRequest(BaseModel):
-    player: str
-    index: int
-
-
-@app.get("/state")
-def get_state():
-    board = TicTacToeBoard.load_from_redis()
-    return board.to_dict()
-
-
-@app.post("/move")
-def post_move(req: MoveRequest):
-    board = TicTacToeBoard.load_from_redis()
-    # ipdb.set_trace()
-    result = board.make_move(req.player, req.index)
-    if not result["success"]:
-        raise HTTPException(status_code=400, detail=result["message"])
-    return result
-
-
-@app.post("/reset")
-def post_reset():
-    board = TicTacToeBoard()
-    board.reset()
-    return {"message": "Game reset", "board": board.to_dict()}

@@ -6,15 +6,15 @@ import redis.asyncio as aioredis
 import websockets
 import os
 
-redisPubSubKey = "ttt_game_state_changed"
+redisPubSubKey = "chess_game_state_changed"
 
 # FastAPI base URL
 BASE_URL = "http://localhost:8000"
 
 # CLI argument parsing
-parser = argparse.ArgumentParser(description="Tic Tac Toe Game Client")
+parser = argparse.ArgumentParser(description="Chess Game Client")
 parser.add_argument(
-    "--player", choices=["x", "o"], required=True, help="Which player are you?"
+    "--player", choices=["white", "black"], required=True, help="Which player are you?"
 )
 parser.add_argument(
     "--reset", action="store_true", help="Reset the board before starting the game."
@@ -32,7 +32,7 @@ print(f"Connecting to WebSocket server at {WS_URL}")
 r = aioredis.Redis(
     host="ai.thewcl.com", port=6379, db=team_number, password=os.getenv("WCL_REDIS_PASSWORD"), decode_responses=True
 )
-redisPubSubKey = "ttt_game_state_changed"
+redisPubSubKey = "chess_game_state_changed"
 
 # FastAPI base URL
 BASE_URL = "http://localhost:8000"

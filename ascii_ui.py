@@ -5,7 +5,7 @@ import os
 import argparse
 
 # Parse required --team argument
-parser = argparse.ArgumentParser(description="ASCII UI for Tic Tac Toe")
+parser = argparse.ArgumentParser(description="ASCII UI for Chess")
 parser.add_argument("--team", required=True, help="Your team number (used as WebSocket port)")
 args = parser.parse_args()
 team_number = int(args.team)
@@ -21,19 +21,19 @@ def clear_terminal():
 
 def format_cell(value, index):
     upper = str(value).upper()
-    return upper if upper in ["X", "O"] else str(index)
+    return upper if upper in ["W", "B"] else str(index)
 
 
 def render_board(positions):
     def row(start):
-        return f" {format_cell(positions[start], start)} | {format_cell(positions[start + 1], start + 1)} | {format_cell(positions[start + 2], start + 2)} "
+        return f" {format_cell(positions[start], start)} | {format_cell(positions[start + 8], start + 8)} | {format_cell(positions[start + 16], start + 16)} "
 
     line = "---+---+---"
     print(row(0))
     print(line)
-    print(row(3))
+    print(row(8))
     print(line)
-    print(row(6))
+    print(row(16))
     print()
 
 
@@ -44,7 +44,7 @@ async def listen_for_updates():
             try:
                 data = json.loads(message)
                 positions = data.get("positions")
-                if isinstance(positions, list) and len(positions) == 9:
+                if isinstance(positions, list) and len(positions) == 64:
                     clear_terminal()
                     render_board(positions)
                 else:
