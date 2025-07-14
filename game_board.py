@@ -1,11 +1,14 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from dataclasses import dataclass, field, asdict
 import redis
 from redis.commands.json.path import Path
 import json
+import ipdb
 
-r = redis.Redis(host="ai.thewcl.com", port=6379, db=2, password="atmega328")
-REDIS_KEY = "chess:game_state"
-
+r = redis.Redis(host="ai.thewcl.com", port=6379, db=0, password="atmega328")
+REDIS_KEY = "tic_tac_toe:game_state"
+PUBSUB_KEY = "ttt_game_state_changed"
 # ----------------------------
 # Data Model
 # Starter class for your game board. Rename and modify for your own game.
@@ -21,7 +24,7 @@ class ChessBoard:
     def is_my_turn(self, player: str) -> bool:
         return self.state == "is_playing" and player == self.player_turn
 
-    def make_move(self, player: str, index: int) -> dict:
+    def make_move(self, player: str, index: int, piece: str) -> dict:
         if self.state != "is_playing":
             return {"success": False, "message": "Game is over. Please reset."}
 
@@ -37,7 +40,7 @@ class ChessBoard:
         if self.positions[index]:
             return {"success": False, "message": "That position is already taken."}
 
-        self.positions[index] = player
+        self.positions[index] = piece
 
         if self.check_winner():
             self.state = "has_winner"
@@ -48,6 +51,8 @@ class ChessBoard:
 
         self.save_to_redis()
         return {"success": True, "message": "Move accepted.", "board": self.to_dict()}
+        r.publish(PUBSUB_KEY, "update")
+
 
     def check_winner(self) -> str | None:
         wins = [
@@ -74,7 +79,7 @@ class ChessBoard:
         )
 
     def switch_turn(self):
-        self.player_turn = "white" if self.player_turn == "black" else "black"
+        self.player_turn = "black" if self.player_turn == "white" else "white"
 
     def reset(self):
         self.state = "is_playing"
@@ -96,3 +101,37 @@ class ChessBoard:
     def serialize(self):
         return json.dumps(self.to_dict())
 
+
+# ----------------------------
+# FastAPI App
+# ----------------------------
+
+app = FastAPI()
+
+
+class MoveRequest(BaseModel):
+    player: str
+    index: int
+
+
+@app.get("/state")
+def get_state():
+    board = ChessBoard.load_from_redis()
+    return board.to_dict()
+
+
+@app.post("/move")
+def post_move(req: MoveRequest):
+    board = ChessBoard.load_from_redis()
+    # ipdb.set_trace()
+    result = board.make_move(req.player, req.index)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    return result
+
+
+@app.post("/reset")
+def post_reset():
+    board = ChessBoard()
+    board.reset()
+    return {"message": "Game reset", "board": board.to_dict()}
