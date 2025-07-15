@@ -21,21 +21,32 @@ def clear_terminal():
 
 def format_cell(value, index):
     upper = str(value).upper()
-    return upper if upper in ["X", "O"] else str(index)
+    return upper if upper in ["white", "black"] else str(index)
 
 
-def render_board(positions):
-    def row(start):
-        return f" {format_cell(positions[start], start)} | {format_cell(positions[start + 1], start + 1)} | {format_cell(positions[start + 2], start + 2)} "
+def render_chess_board(positions: list[str]):
+    PIECE_SYMBOLS = {
+        "white_pawn": "WP",  "white_rook": "WR",  "white_knight": "WN", "white_bishop": "WB",
+        "white_queen": "WQ", "white_king": "WK",
+        "black_pawn": "BP",  "black_rook": "BR",  "black_knight": "BN", "black_bishop": "BB",
+        "black_queen": "BQ", "black_king": "BK",
+    }
 
-    line = "---+---+---"
-    print(row(0))
-    print(line)
-    print(row(3))
-    print(line)
-    print(row(6))
-    print()
+    def format_cell(piece):
+        return PIECE_SYMBOLS.get(piece, ".")
 
+    columns = "A B C D E F G H".split()
+    print("    " + "  ".join(columns))
+    print("  +" + "---+" * 8)
+
+    for row in range(8):
+        row_str = f"{8 - row} |"
+        for col in range(8):
+            idx = row * 8 + col
+            piece = format_cell(positions[idx])
+            row_str += f" {piece} |"
+        print(row_str)
+        print("  +" + "---+" * 8)
 
 async def listen_for_updates():
     async with websockets.connect(WEBSOCKET_URL) as ws:
@@ -44,9 +55,9 @@ async def listen_for_updates():
             try:
                 data = json.loads(message)
                 positions = data.get("positions")
-                if isinstance(positions, list) and len(positions) == 9:
+                if isinstance(positions, list) and len(positions) == 64:
                     clear_terminal()
-                    render_board(positions)
+                    render_chess_board(positions)
                 else:
                     print("Invalid board data received.")
             except json.JSONDecodeError:
@@ -54,4 +65,10 @@ async def listen_for_updates():
 
 
 if __name__ == "__main__":
+    positions = [""] * 64
+    positions[60] = "white_king"   # e1
+    positions[4] = "black_king"    # e8
+
+    render_chess_board(positions)
+
     asyncio.run(listen_for_updates())

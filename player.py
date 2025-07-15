@@ -14,7 +14,7 @@ BASE_URL = "http://localhost:8000"
 # CLI argument parsing
 parser = argparse.ArgumentParser(description="Tic Tac Toe Game Client")
 parser.add_argument(
-    "--player", choices=["x", "o"], required=True, help="Which player are you?"
+    "--player", choices=["white", "black"], required=True, help="Which player are you?"
 )
 parser.add_argument(
     "--reset", action="store_true", help="Reset the board before starting the game."
@@ -61,7 +61,7 @@ async def post_move(player, index):
 async def send_positions_over_websocket(websocket):
     board = await get_board()
     positions = board.get("positions")
-    if isinstance(positions, list) and len(positions) == 9:
+    if isinstance(positions, list) and len(positions) == 64:
         await websocket.send(json.dumps({"positions": positions}))
 
 
@@ -75,7 +75,7 @@ async def handle_board_state(websocket):
         return
 
     if board["player_turn"] == i_am_playing:
-        move = input("Your turn! Which square do you want to play? (0-8): ")
+        move = input("Your turn! Which square do you want to play? (0-63): ")
         if move.isdigit():
             index = int(move)
             response = await post_move(i_am_playing, index)

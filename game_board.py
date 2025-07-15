@@ -8,49 +8,45 @@ import ipdb
 
 r = redis.Redis(host="ai.thewcl.com", port=6379, db=0, password="atmega328")
 REDIS_KEY = "tic_tac_toe:game_state"
-
-# ----------------------------
-# Data Model
-# Starter class for your game board. Rename and modify for your own game.
-# ----------------------------
-
+PUBSUB_KEY = "ttt_game_state_changed"
 
 @dataclass
-class TicTacToeBoard:
-    state: str = "is_playing"  # is_playing, has_winner, has_draw
-    player_turn: str = "x"
-    positions: list[str] = field(default_factory=lambda: [""] * 9)
+class ChessBoard:
+    state: str = "is_playing"  # is_playing, has_winner
+    player_turn: str = "white"
+    positions: list[str] = field(default_factory=lambda: [""] * 64)
 
     def is_my_turn(self, player: str) -> bool:
         return self.state == "is_playing" and player == self.player_turn
 
-    def make_move(self, player: str, index: int) -> dict:
+    def make_move(self, player: str, index: int, piece: str) -> dict:
         if self.state != "is_playing":
             return {"success": False, "message": "Game is over. Please reset."}
 
         if not self.is_my_turn(player):
             return {"success": False, "message": f"It is not {player}'s turn."}
 
-        if not 0 <= index < 9:
+        if not 0 <= index < 64:
             return {
                 "success": False,
-                "message": "Invalid index. Must be between 0 and 8.",
+                "message": "Invalid index. Must be between 0 and 63.",
             }
 
         if self.positions[index]:
             return {"success": False, "message": "That position is already taken."}
 
-        self.positions[index] = player
+        self.positions[index] = piece
 
         if self.check_winner():
             self.state = "has_winner"
-        elif self.check_draw():
-            self.state = "has_draw"
         else:
             self.switch_turn()
 
         self.save_to_redis()
+        r.publish(PUBSUB_KEY, "update")
         return {"success": True, "message": "Move accepted.", "board": self.to_dict()}
+        
+
 
     def check_winner(self) -> str | None:
         wins = [
@@ -77,12 +73,12 @@ class TicTacToeBoard:
         )
 
     def switch_turn(self):
-        self.player_turn = "o" if self.player_turn == "x" else "x"
+        self.player_turn = "black" if self.player_turn == "white" else "white"
 
     def reset(self):
         self.state = "is_playing"
-        self.player_turn = "x"
-        self.positions = [""] * 9
+        self.player_turn = "white"
+        self.positions = [""] * 64
         self.save_to_redis()
 
     def save_to_redis(self):
@@ -114,13 +110,13 @@ class MoveRequest(BaseModel):
 
 @app.get("/state")
 def get_state():
-    board = TicTacToeBoard.load_from_redis()
+    board = ChessBoard.load_from_redis()
     return board.to_dict()
 
 
 @app.post("/move")
 def post_move(req: MoveRequest):
-    board = TicTacToeBoard.load_from_redis()
+    board = ChessBoard.load_from_redis()
     # ipdb.set_trace()
     result = board.make_move(req.player, req.index)
     if not result["success"]:
@@ -130,6 +126,6 @@ def post_move(req: MoveRequest):
 
 @app.post("/reset")
 def post_reset():
-    board = TicTacToeBoard()
+    board = ChessBoard()
     board.reset()
     return {"message": "Game reset", "board": board.to_dict()}
