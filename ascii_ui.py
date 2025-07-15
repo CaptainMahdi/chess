@@ -53,11 +53,6 @@ async def listen_for_updates():
             except json.JSONDecodeError:
                 print("Received non-JSON message.")
 
-'''
-if __name__ == "__main__":
-    asyncio.run(listen_for_updates())
-'''
 
 if __name__ == "__main__":
-    empty_board = [""] * 64
-    render_board(empty_board)
+    asyncio.run(listen_for_updates())
