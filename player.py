@@ -50,12 +50,17 @@ async def get_board():
         return response.json()
 
 
-async def post_move(player, index):
+async def post_move(player, from_index, to_index):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            f"{BASE_URL}/move", json={"player": player, "index": index}
+            f"{BASE_URL}/move", json={
+                "player": player,
+                "from_index": from_index,
+                "to_index": to_index
+            }
         )
         return response
+
 
 
 async def send_positions_over_websocket(websocket):
@@ -75,11 +80,13 @@ async def handle_board_state(websocket):
         return
 
     if board["player_turn"] == i_am_playing:
-        piece
-        move = input("Your turn! Which square do you want to play? (0-63): ")
-        if move.isdigit():
-            index = int(move)
-            response = await post_move(i_am_playing, index)
+        from_index = input("Your turn! Move FROM (0-63): ").strip()
+        to_index = input("Move TO (0-63): ").strip()
+
+        if from_index.isdigit() and to_index.isdigit():
+            from_index = int(from_index)
+            to_index = int(to_index)
+            response = await post_move(i_am_playing, from_index, to_index)
             if response.status_code == 200:
                 print(response.json()["message"])
                 await r.publish(redisPubSubKey, "update")

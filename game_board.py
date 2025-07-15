@@ -24,24 +24,31 @@ class ChessBoard:
     def is_my_turn(self, player: str) -> bool:
         return self.state == "is_playing" and player == self.player_turn
 
-    def make_move(self, player: str, index: int) -> dict:
+    def make_move(self, player: str, from_index: int, to_index: int) -> dict:
         if self.state != "is_playing":
             return {"success": False, "message": "Game is over. Please reset."}
 
         if not self.is_my_turn(player):
             return {"success": False, "message": f"It is not {player}'s turn."}
 
-        if not 0 <= index < 64:
-            return {
-                "success": False,
-                "message": "Invalid index. Must be between 0 and 63.",
-            }
+        if not (0 <= from_index < 64) or not (0 <= to_index < 64):
+            return {"success": False, "message": "Invalid square index."}
 
-        if self.positions[index]:
-            return {"success": False, "message": "That position is already taken."}
+        piece = self.positions[from_index]
+        if not piece:
+            return {"success": False, "message": "No piece at from_index."}
 
-        self.positions[index] = player
+        if not piece.startswith(player[0]):
+            return {"success": False, "message": "You can only move your own pieces."}
 
+        if self.positions[to_index]:
+            return {"success": False, "message": "That square is already occupied."}
+
+        # Move the piece
+        self.positions[to_index] = piece
+        self.positions[from_index] = ""
+
+        # Update game state
         if self.check_winner():
             self.state = "has_winner"
         elif self.check_draw():
@@ -109,7 +116,9 @@ app = FastAPI()
 
 class MoveRequest(BaseModel):
     player: str
-    index: int
+    from_index: int
+    to_index: int
+
 
 
 @app.get("/state")
@@ -121,8 +130,7 @@ def get_state():
 @app.post("/move")
 def post_move(req: MoveRequest):
     board = ChessBoard.load_from_redis()
-    # ipdb.set_trace()
-    result = board.make_move(req.player, req.index)
+    result = board.make_move(req.player, req.from_index, req.to_index)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
     return result
