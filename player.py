@@ -114,5 +114,11 @@ async def main():
         await listen_for_updates(websocket)
 
 
+'''
+if __name__ =="__main__":
+    empyt_board = ["" for _ in range(64)]
+    render_board(empyt_board))
+'''
+
 if __name__ == "__main__":
     asyncio.run(main())
