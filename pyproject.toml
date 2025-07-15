@@ -8,6 +8,7 @@ dependencies = [
     "aioredis>=2.0.1",
     "argparse>=1.4.0",
     "asyncio>=3.4.3",
+    "chess>=1.11.2",
     "fastapi>=0.115.12",
     "httpx>=0.28.1",
     "ipdb>=0.13.13",

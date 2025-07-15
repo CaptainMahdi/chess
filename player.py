@@ -71,33 +71,49 @@ async def send_positions_over_websocket(websocket):
 
 
 async def handle_board_state(websocket):
+    # Get the current board state (this fetches the FEN and other info from the backend)
     board = await get_board()
 
-    print(json.dumps(board, indent=2))
+    print(json.dumps(board, indent=2))  # Debugging: print current board state
 
     if board["state"] != "is_playing":
         print("Game over.")
         return
 
     if board["player_turn"] == i_am_playing:
-        from_index = input("Your turn! Move FROM (0-63): ").strip()
-        to_index = input("Move TO (0-63): ").strip()
+        while True:  # Loop until a valid move is entered
+            try:
+                # Prompt for the 'from' and 'to' squares
+                from_index = int(input("Your turn! Move FROM (0-63): ").strip())
+                to_index = int(input("Move TO (0-63): ").strip())
+                
+                # Ensure the input indices are valid
+                if from_index < 0 or from_index >= 64 or to_index < 0 or to_index >= 64:
+                    print("Invalid square indices! Please enter values between 0 and 63.")
+                    continue
 
-        if from_index.isdigit() and to_index.isdigit():
-            from_index = int(from_index)
-            to_index = int(to_index)
-            response = await post_move(i_am_playing, from_index, to_index)
-            if response.status_code == 200:
-                print(response.json()["message"])
-                await r.publish(redisPubSubKey, "update")
-            else:
-                print("Error:", response.json()["detail"])
-        else:
-            print("Please enter a valid number.")
+                # Send the move request to the FastAPI backend for validation
+                response = await post_move(i_am_playing, from_index, to_index)
+
+                # Check if the move was successful
+                if response.status_code == 200:
+                    print(response.json()["message"])
+                    await r.publish(redisPubSubKey, "update")
+                    break  # Exit the loop when a valid move is made
+                else:
+                    print("Error:", response.json()["detail"])
+
+            except ValueError:
+                print("Invalid input. Please enter valid integers for from_index and to_index.")
+            except Exception as e:
+                print(f"Error: {e}")
+    
     else:
-        print("Waiting for the other player...")
+        print("Waiting for the opponent...")
 
+    # Send the updated board state after each move
     await send_positions_over_websocket(websocket)
+
 
 
 async def listen_for_updates(websocket):

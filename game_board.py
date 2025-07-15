@@ -5,6 +5,9 @@ import redis
 from redis.commands.json.path import Path
 import json
 import ipdb
+import chess
+
+
 
 r = redis.Redis(host="ai.thewcl.com", port=6379, db=0, password="atmega328")
 REDIS_KEY = "tic_tac_toe:game_state"
@@ -20,44 +23,81 @@ class ChessBoard:
     state: str = "is_playing"  # is_playing, has_winner, has_draw
     player_turn: str = "white"
     positions: list[str] = field(default_factory=lambda: [""] * 64)
+    fen: str = chess.STARTING_FEN  # saved FEN string
+
+    def get_board(self):
+        return chess.Board(self.fen)
+    
+    def render_board_list(self, board: chess.Board) -> list[str]:
+        squares = []
+    
+        # Loop through all 64 squares
+        for i in range(64):
+            piece = board.piece_at(i)
+        
+        # If there's a piece at this square, get its symbol
+        if piece:
+            color = "w" if piece.color == chess.WHITE else "b"
+            squares.append(color + piece.symbol().upper())  # 'wP' for white pawn, 'bK' for black king
+        else:
+            squares.append("")  # Empty square, use "" for no piece
+
+        return squares
+
 
     def is_my_turn(self, player: str) -> bool:
         return self.state == "is_playing" and player == self.player_turn
 
     def make_move(self, player: str, from_index: int, to_index: int) -> dict:
-        if self.state != "is_playing":
+        board = chess.Board(self.fen)
+
+        # Check if game is already over
+        if board.is_game_over():
             return {"success": False, "message": "Game is over. Please reset."}
 
-        if not self.is_my_turn(player):
+        # Convert 0-63 indices to algebraic notation
+        from_square = chess.SQUARE_NAMES[from_index]
+        to_square = chess.SQUARE_NAMES[to_index]
+        move = chess.Move.from_uci(from_square + to_square)
+
+        # Validate the move
+        if move not in board.legal_moves:
+            return {"success": False, "message": "Illegal move."}
+
+        # Validate it's the right player's turn
+        expected_color = chess.WHITE if player == "white" else chess.BLACK
+        if board.turn != expected_color:
             return {"success": False, "message": f"It is not {player}'s turn."}
 
-        if not (0 <= from_index < 64) or not (0 <= to_index < 64):
-            return {"success": False, "message": "Invalid square index."}
+        # Apply the move to the board
+        board.push(move)
 
-        piece = self.positions[from_index]
-        if not piece:
-            return {"success": False, "message": "No piece at from_index."}
+        # Update state after the move
+        self.fen = board.fen()  # Save the updated FEN string
+        self.player_turn = "white" if board.turn == chess.WHITE else "black"
+        self.state = self.get_state(board)  # Check if it's a draw, checkmate, etc.
 
-        if not piece.startswith(player[0]):
-            return {"success": False, "message": "You can only move your own pieces."}
+        # Update positions list based on the new board
+        self.positions = self.render_board_list(board)
 
-        if self.positions[to_index]:
-            return {"success": False, "message": "That square is already occupied."}
-
-        # Move the piece
-        self.positions[to_index] = piece
-        self.positions[from_index] = ""
-
-        # Update game state
-        if self.check_winner():
-            self.state = "has_winner"
-        elif self.check_draw():
-            self.state = "has_draw"
-        else:
-            self.switch_turn()
-
+        # Save updated state to Redis
         self.save_to_redis()
-        return {"success": True, "message": "Move accepted.", "board": self.to_dict()}
+
+        return {
+            "success": True,
+            "message": "Move accepted.",
+            "fen": self.fen,
+            "state": self.state,
+            "player_turn": self.player_turn,
+            "positions": self.positions
+        }
+
+    def get_state(self, board: chess.Board) -> str:
+        if board.is_checkmate():
+            return "has_winner"
+        elif board.is_stalemate() or board.is_insufficient_material():
+            return "has_draw"
+        return "is_playing"
 
     def check_winner(self) -> str | None:
         wins = [
@@ -89,6 +129,7 @@ class ChessBoard:
     def reset(self):
         self.state = "is_playing"
         self.player_turn = "white"
+        self.fen = chess.STARTING_FEN
         self.setup_starting_position()
         self.save_to_redis()
 
