@@ -25,16 +25,17 @@ def format_cell(value, index):
 
 
 def render_board(positions):
-    def row(start):
-        return f" {format_cell(positions[start], start)} | {format_cell(positions[start + 1], start + 1)} | {format_cell(positions[start + 2], start + 2)} "
+    assert len(positions) == 64, "Board must have 64 positions."
 
-    line = "---+---+---"
-    print(row(0))
-    print(line)
-    print(row(3))
-    print(line)
-    print(row(6))
-    print()
+    def format_square(value, index):
+        return value if value else f"{index:02d}"
+
+    for row in range(8):
+        line = " | ".join(format_square(positions[row * 8 + col], row * 8 + col) for col in range(8))
+        print(" " + line)
+        if row < 7:
+            print("-" * (len(line) + 1))
+
 
 
 async def listen_for_updates():
@@ -52,6 +53,11 @@ async def listen_for_updates():
             except json.JSONDecodeError:
                 print("Received non-JSON message.")
 
-
+'''
 if __name__ == "__main__":
     asyncio.run(listen_for_updates())
+'''
+
+if __name__ == "__main__":
+    empty_board = [""] * 64
+    render_board(empty_board)
