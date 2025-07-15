@@ -8,18 +8,23 @@ import ipdb
 
 r = redis.Redis(host="ai.thewcl.com", port=6379, db=0, password="atmega328")
 REDIS_KEY = "tic_tac_toe:game_state"
-PUBSUB_KEY = "ttt_game_state_changed"
+
+# ----------------------------
+# Data Model
+# Starter class for your game board. Rename and modify for your own game.
+# ----------------------------
+
 
 @dataclass
 class ChessBoard:
-    state: str = "is_playing"  # is_playing, has_winner
+    state: str = "is_playing"  # is_playing, has_winner, has_draw
     player_turn: str = "white"
     positions: list[str] = field(default_factory=lambda: [""] * 64)
 
     def is_my_turn(self, player: str) -> bool:
         return self.state == "is_playing" and player == self.player_turn
 
-    def make_move(self, player: str, index: int, piece: str) -> dict:
+    def make_move(self, player: str, index: int) -> dict:
         if self.state != "is_playing":
             return {"success": False, "message": "Game is over. Please reset."}
 
@@ -35,18 +40,17 @@ class ChessBoard:
         if self.positions[index]:
             return {"success": False, "message": "That position is already taken."}
 
-        self.positions[index] = piece
+        self.positions[index] = player
 
         if self.check_winner():
             self.state = "has_winner"
+        elif self.check_draw():
+            self.state = "has_draw"
         else:
             self.switch_turn()
 
         self.save_to_redis()
-        r.publish(PUBSUB_KEY, "update")
         return {"success": True, "message": "Move accepted.", "board": self.to_dict()}
-        
-
 
     def check_winner(self) -> str | None:
         wins = [
@@ -73,7 +77,7 @@ class ChessBoard:
         )
 
     def switch_turn(self):
-        self.player_turn = "black" if self.player_turn == "white" else "white"
+        self.player_turn = "white" if self.player_turn == "black" else "black"
 
     def reset(self):
         self.state = "is_playing"

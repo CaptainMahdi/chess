@@ -75,7 +75,7 @@ async def handle_board_state(websocket):
         return
 
     if board["player_turn"] == i_am_playing:
-        move = input("Your turn! Which square do you want to play? (0-63): ")
+        move = input("Your turn! Which square do you want to play? (0-8): ")
         if move.isdigit():
             index = int(move)
             response = await post_move(i_am_playing, index)
