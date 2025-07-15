@@ -20,8 +20,8 @@ def clear_terminal():
 
 
 def format_cell(value, index):
-    upper = str(value).upper()
-    return upper if upper in ["W", "B"] else str(index)
+    return value if value else f"{index:02d}"
+
 
 
 def render_board(positions):

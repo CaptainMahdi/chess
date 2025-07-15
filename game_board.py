@@ -89,7 +89,7 @@ class ChessBoard:
     def reset(self):
         self.state = "is_playing"
         self.player_turn = "white"
-        self.positions = [""] * 64
+        self.setup_starting_position()
         self.save_to_redis()
 
     def save_to_redis(self):
@@ -105,6 +105,36 @@ class ChessBoard:
 
     def serialize(self):
         return json.dumps(self.to_dict())
+    
+    def setup_starting_position(self):
+        self.positions = [""] * 64
+
+        # Setup pawns
+        for i in range(8, 16):
+            self.positions[i] = "bP"
+        for i in range(48, 56):
+            self.positions[i] = "wP"
+
+        # Setup rooks
+        self.positions[0] = self.positions[7] = "bR"
+        self.positions[56] = self.positions[63] = "wR"
+
+        # Setup knights
+        self.positions[1] = self.positions[6] = "bN"
+        self.positions[57] = self.positions[62] = "wN"
+
+        # Setup bishops
+        self.positions[2] = self.positions[5] = "bB"
+        self.positions[58] = self.positions[61] = "wB"
+
+        # Setup queens
+        self.positions[3] = "bQ"
+        self.positions[59] = "wQ"
+
+        # Setup kings
+        self.positions[4] = "bK"
+        self.positions[60] = "wK"
+
 
 
 # ----------------------------
