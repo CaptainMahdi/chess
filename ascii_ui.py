@@ -1,61 +1,47 @@
-import asyncio
-import websockets
-import json
-import os
-import argparse
+# color_test.py
+from color_board import setup_board, print_board, generate_legal_moves, move_piece, can_promote, promote_pawn
 
-# Parse required --team argument
-parser = argparse.ArgumentParser(description="ASCII UI for Tic Tac Toe")
-parser.add_argument("--team", required=True, help="Your team number (used as WebSocket port)")
-args = parser.parse_args()
-team_number = int(args.team)
-team_number_str = f"{team_number:02d}"
- 
-# Build the WebSocket URL dynamically
-WEBSOCKET_URL = f"ws://ai.thewcl.com:87{team_number_str}"
+def main():
+    board = setup_board()
+    selected_square = None
 
+    while True:
+        promotion_squares = [sq for sq, p in board.items() if can_promote(p, sq)]
+        legal_moves = generate_legal_moves(board, selected_square) if selected_square else None
 
-def clear_terminal():
-    os.system("cls" if os.name == "nt" else "clear")
+        print_board(board, legal_moves=legal_moves, promotion_squares=promotion_squares, selected_square=selected_square)
 
-
-def format_cell(value, index):
-    return value if value else f"{index:02d}"
-
-
-
-def render_board(positions):
-    assert len(positions) == 64, "Board must have 64 positions."
-
-    def format_square(value, index):
-        return value if value else f"{index:02d}"
-
-    for row in range(8):
-        line = " | ".join(format_square(positions[row * 8 + col], row * 8 + col) for col in range(8))
-        print(" " + line)
-        if row < 7:
-            print("-" * (len(line) + 1))
-
-
-
-async def listen_for_updates():
-    async with websockets.connect(WEBSOCKET_URL) as ws:
-        print(f"Connected to {WEBSOCKET_URL}")
-        async for message in ws:
-            try:
-                data = json.loads(message)
-                positions = data.get("positions")
-                if isinstance(positions, list) and len(positions) == 64:
-                    clear_terminal()
-                    render_board(positions)
+        if not selected_square:
+            user_input = input("Select piece (e.g., e2) or 'quit': ").strip().lower()
+            if user_input == "quit":
+                print("Goodbye!")
+                break
+            if user_input in board:
+                selected_square = user_input
+            else:
+                print("Invalid square or empty. Try again.")
+        else:
+            user_input = input(f"Enter your move for {selected_square} or 'cancel': ").strip().lower()
+            if user_input == "cancel":
+                selected_square = None
+                continue
+            if user_input in legal_moves:
+                # Handle promotion if pawn moves to last rank
+                if can_promote(board[selected_square], user_input):
+                    print("Pawn promotion! Choose piece: q, r, b, n")
+                    while True:
+                        choice = input("Promote to (q/r/b/n): ").strip().lower()
+                        if choice in ['q','r','b','n']:
+                            move_piece(board, selected_square, user_input)
+                            promote_pawn(board, user_input, choice)
+                            break
+                        else:
+                            print("Invalid choice, please enter q, r, b, or n.")
                 else:
-                    print("Invalid board data received.")
-            except json.JSONDecodeError:
-                print("Received non-JSON message.")
-
-
+                    move_piece(board, selected_square, user_input)
+                selected_square = None
+            else:
+                print("Invalid move. Try again.")
 
 if __name__ == "__main__":
-    
-    render_board(["" for _ in range(64)])
-    asyncio.run(listen_for_updates())
+    main()
