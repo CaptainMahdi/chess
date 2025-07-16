@@ -54,6 +54,8 @@ async def listen_for_updates():
                 print("Received non-JSON message.")
 
 
+
 if __name__ == "__main__":
-    render_board()
+    
+    render_board(["" for _ in range(64)])
     asyncio.run(listen_for_updates())
