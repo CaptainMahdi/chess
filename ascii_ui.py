@@ -55,4 +55,5 @@ async def listen_for_updates():
 
 
 if __name__ == "__main__":
+    render_board()
     asyncio.run(listen_for_updates())
