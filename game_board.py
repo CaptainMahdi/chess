@@ -16,7 +16,7 @@ REDIS_KEY = "tic_tac_toe:game_state"
 # Data Model
 # Starter class for your game board. Rename and modify for your own game.
 # ----------------------------
-
+ 
 
 @dataclass
 class ChessBoard:

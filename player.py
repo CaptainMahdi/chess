@@ -10,7 +10,7 @@ redisPubSubKey = "ttt_game_state_changed"
 
 # FastAPI base URL
 BASE_URL = "http://localhost:8000"
-
+ 
 # CLI argument parsing
 parser = argparse.ArgumentParser(description="Tic Tac Toe Game Client")
 parser.add_argument(

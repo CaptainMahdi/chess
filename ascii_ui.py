@@ -10,7 +10,7 @@ parser.add_argument("--team", required=True, help="Your team number (used as Web
 args = parser.parse_args()
 team_number = int(args.team)
 team_number_str = f"{team_number:02d}"
-
+ 
 # Build the WebSocket URL dynamically
 WEBSOCKET_URL = f"ws://ai.thewcl.com:87{team_number_str}"
 
