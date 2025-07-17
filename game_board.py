@@ -6,6 +6,7 @@ from redis.commands.json.path import Path
 import json
 import ipdb
 import chess
+from rich import print
 
 
 
