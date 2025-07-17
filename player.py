@@ -24,8 +24,7 @@ args = parser.parse_args()
 
 i_am_playing = args.player
 team_number = int(args.team)
-team_number_str = f"{team_number:02d}"
-WS_URL = f"ws://ai.thewcl.com:87{team_number_str}"
+WS_URL = f"ws://ai.thewcl.com:8702"
 print(f"Connecting to WebSocket server at {WS_URL}")
 
 # Redis Pub/Sub setup

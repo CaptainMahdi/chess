@@ -32,17 +32,96 @@ class ChessBoard:
         squares = []
     
         # Loop through all 64 squares
-        for i in range(64):
+        for i in range(56, 64):  # 8th row (index 56-63)
             piece = board.piece_at(i)
-        
-        # If there's a piece at this square, get its symbol
-        if piece:
-            color = "w" if piece.color == chess.WHITE else "b"
-            squares.append(color + piece.symbol().upper())  # 'wP' for white pawn, 'bK' for black king
-        else:
-            squares.append("")  # Empty square, use "" for no piece
+            if piece:
+                if piece.color == chess.WHITE:
+                    color = "w"
+                else:
+                    color = "b"
+                squares.append(color + piece.symbol().upper())  # 'wP' for white pawn, 'bK' for black king
+            else:
+                squares.append("")  # Empty square, use "" for no piece
+
+        for i in range(48, 56):  # 7th row (index 48-55)
+            piece = board.piece_at(i)
+            if piece:
+                if piece.color == chess.WHITE:
+                    color = "w"
+                else:
+                    color = "b"
+                squares.append(color + piece.symbol().upper())
+            else:
+                squares.append("")
+
+        for i in range(40, 48):  # 6th row (index 40-47)
+            piece = board.piece_at(i)
+            if piece:
+                if piece.color == chess.WHITE:
+                    color = "w"
+                else:
+                    color = "b"
+                squares.append(color + piece.symbol().upper())
+            else:
+                squares.append("")
+
+        for i in range(32, 40):  # 5th row (index 32-39)
+            piece = board.piece_at(i)
+            if piece:
+                if piece.color == chess.WHITE:
+                    color = "w"
+                else:
+                    color = "b"
+                squares.append(color + piece.symbol().upper())
+            else:
+                squares.append("")
+
+        for i in range(24, 32):  # 4th row (index 24-31)
+            piece = board.piece_at(i)
+            if piece:
+                if piece.color == chess.WHITE:
+                    color = "w"
+                else:
+                    color = "b"
+                squares.append(color + piece.symbol().upper())
+            else:
+                squares.append("")
+
+        for i in range(16, 24):  # 3rd row (index 16-23)
+            piece = board.piece_at(i)
+            if piece:
+                if piece.color == chess.WHITE:
+                    color = "w"
+                else:
+                    color = "b"
+                squares.append(color + piece.symbol().upper())
+            else:
+                squares.append("")
+
+        for i in range(8, 16):  # 2nd row (index 8-15)
+            piece = board.piece_at(i)
+            if piece:
+                if piece.color == chess.WHITE:
+                    color = "w"
+                else:
+                    color = "b"
+                squares.append(color + piece.symbol().upper())
+            else:
+                squares.append("")
+
+        for i in range(0, 8):  # 1st row (index 0-7)
+            piece = board.piece_at(i)
+            if piece:
+                if piece.color == chess.WHITE:
+                    color = "w"
+                else:
+                    color = "b"
+                squares.append(color + piece.symbol().upper())
+            else:
+                squares.append("")
 
         return squares
+
 
 
     def is_my_turn(self, player: str) -> bool:
@@ -56,9 +135,10 @@ class ChessBoard:
             return {"success": False, "message": "Game is over. Please reset."}
 
         # Convert 0-63 indices to algebraic notation
-        from_square = chess.SQUARE_NAMES[from_index]
-        to_square = chess.SQUARE_NAMES[to_index]
-        move = chess.Move.from_uci(from_square + to_square)
+        from_square = chess.square(from_index % 8, 7 - from_index // 8)
+        to_square = chess.square(to_index % 8, 7 - to_index // 8)
+
+        move = chess.Move(from_square, to_square)
 
         # Validate the move
         if move not in board.legal_moves:
@@ -70,7 +150,9 @@ class ChessBoard:
             return {"success": False, "message": f"It is not {player}'s turn."}
 
         # Apply the move to the board
+        print(board)
         board.push(move)
+        print(board)
 
         # Update state after the move
         self.fen = board.fen()  # Save the updated FEN string
@@ -78,7 +160,9 @@ class ChessBoard:
         self.state = self.get_state(board)  # Check if it's a draw, checkmate, etc.
 
         # Update positions list based on the new board
+        print(self.positions)
         self.positions = self.render_board_list(board)
+        print(self.positions)
 
         # Save updated state to Redis
         self.save_to_redis()

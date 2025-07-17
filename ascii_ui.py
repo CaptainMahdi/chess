@@ -9,10 +9,10 @@ parser = argparse.ArgumentParser(description="ASCII UI for Tic Tac Toe")
 parser.add_argument("--team", required=True, help="Your team number (used as WebSocket port)")
 args = parser.parse_args()
 team_number = int(args.team)
-team_number_str = f"{team_number:02d}"
+
  
 # Build the WebSocket URL dynamically
-WEBSOCKET_URL = f"ws://ai.thewcl.com:87{team_number_str}"
+WEBSOCKET_URL = f"ws://ai.thewcl.com:8702"
 
 
 def clear_terminal():
